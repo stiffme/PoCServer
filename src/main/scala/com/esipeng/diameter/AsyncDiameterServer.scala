@@ -1,14 +1,15 @@
 package com.esipeng.diameter
 
+import com.esipeng.diameter.DiameterConstants._
 import com.esipeng.diameter.node._
 import org.slf4j.LoggerFactory
-import DiameterConstants._
+
+import scala.concurrent.{Future, Promise}
 /**
  * Created by esipeng on 9/2/2015.
  */
-case class SyncObj(var answer:Message,var ready:Boolean)
 
-class DiameterServer(settings:NodeSettings,peer:Peer) extends NodeManager(settings){
+class AsyncDiameterServer(settings:NodeSettings,peer:Peer) extends NodeManager(settings){
   val log = LoggerFactory.getLogger("DiameterServer")
   override def start = {
     super.start
@@ -17,34 +18,17 @@ class DiameterServer(settings:NodeSettings,peer:Peer) extends NodeManager(settin
   }
 
   override def handleAnswer(message: Message, connectionKey: ConnectionKey, syncObj: scala.Any): Unit = {
-    val sync = syncObj.asInstanceOf[SyncObj]
-    sync.synchronized  {
-      sync.answer = message
-      sync.ready = true
-      sync.notify()
-    }
+    super.handleAnswer(message,connectionKey,syncObj)
+    val sync = syncObj.asInstanceOf[Promise[Message]]
+    sync.success(message)
   }
 
-  def sendRequest(message:Message,wait:Long):Message =  {
-    val sync = SyncObj(null,false)
-    val waitUntil = System.currentTimeMillis() + wait
+  def sendRequest(message:Message,wait:Long):Future[Message] =  {
+    val sync = Promise[Message]
 
     try {
       super.sendRequest(message,Array[Peer](peer),sync,wait)
 
-      sync.synchronized {
-        if(wait >= 0) { //there is timeout set
-          val current = System.currentTimeMillis()
-          val gap = waitUntil - current
-          if(gap > 0) { //still has some time to wait
-            while(System.currentTimeMillis() < waitUntil && sync.ready == false)
-              sync.wait(gap)
-          }
-        } else  { //wait forever!
-          while(sync.ready == false)
-            sync.wait
-        }
-      }
     } catch {
       case notRoutable:NotRoutableException => {
         log.warn("Not routable diameter message, re-init connection")
@@ -57,10 +41,10 @@ class DiameterServer(settings:NodeSettings,peer:Peer) extends NodeManager(settin
       }
     }
 
-    sync.answer
+    sync.future
   }
 
-  def sendRequest(message:Message):Message  = {
+  def sendRequest(message:Message):Future[Message]  = {
     sendRequest(message,-1L)
   }
 
@@ -68,7 +52,7 @@ class DiameterServer(settings:NodeSettings,peer:Peer) extends NodeManager(settin
 }
 
 
-object DiameterServer {
+object AsyncDiameterServer {
   def createServer(destinationHost:String,destinationPort:Int,destinationIp:String,originHost:String,originRealm:String) = {
     val capabilities = new Capability()
     //add Sh interface capability
@@ -82,6 +66,6 @@ object DiameterServer {
     val hssPeer = new Peer(destinationHost,destinationPort,Peer.TransportProtocol.tcp)
     hssPeer.setRealAddress(destinationIp)
     //return new DiameterServer
-    new DiameterServer(settings,hssPeer)
+    new AsyncDiameterServer(settings,hssPeer)
   }
 }

@@ -23,6 +23,9 @@ object DiameterConstants {
   final val DataRef = 703
   final val ServiceIndication = 704
 
+  final val ExperimentalResult = 297
+  final val ExperimentalResultCode = 298
+
   final val TGPP = 10415
   final val ResultCode = 268
 
