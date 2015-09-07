@@ -19,7 +19,7 @@ case class SigAsyncUpdateData(impu:String,data:Map[String,Int])
 case class SigAsyncUpdateDataResult(success:Future[Boolean])
 case class SigAsyncDeleteData(impu:String)
 case class SigAsyncDeleteDataResult(success:Future[Boolean])
-
+case class RepoData(seq:Int,data:Map[String,Int])
 class AsyncDiameterActor extends Actor with ActorLogging{
   val destinationAddress = context.system.settings.config.getString("diameter.destination-address")
   val destinationPort = context.system.settings.config.getString("diameter.destination-port").toInt
