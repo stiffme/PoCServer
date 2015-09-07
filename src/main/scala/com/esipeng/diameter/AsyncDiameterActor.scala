@@ -177,7 +177,7 @@ class AsyncDiameterActor extends Actor with ActorLogging{
     if(answer != null) {
       val retCodeAvp = answer.find(ResultCode)
       if (retCodeAvp == null) {
-        if(log.isDebugEnabled)  {
+        if(/*log.isDebugEnabled*/true)  {
           //grasp Experimental-Result
           val expResult = new AVP_Grouped(answer.find(ExperimentalResult))
           val expResultCode = expResult.queryAVPs().filter(t => t.code == ExperimentalResultCode)
