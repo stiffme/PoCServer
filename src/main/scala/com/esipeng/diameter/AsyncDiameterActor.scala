@@ -192,7 +192,7 @@ class AsyncDiameterActor extends Actor with ActorLogging{
           val expResultCode = expResult.queryAVPs().filter(t => t.code == ExperimentalResultCode)
           if(expResultCode.length == 1) {
             val code = (new AVP_Integer32(expResultCode(0))).queryValue()
-            log.debug("Experimental result code is {}",code)
+            log.info("Experimental result code is {}",code)
           }
         }
         false
@@ -202,7 +202,7 @@ class AsyncDiameterActor extends Actor with ActorLogging{
         if(retCode == DiameterSuccess) {
           true
         } else  {
-          log.debug("Diameter result code {}",retCode)
+          log.info("Diameter result code {}",retCode)
           false
         }
 

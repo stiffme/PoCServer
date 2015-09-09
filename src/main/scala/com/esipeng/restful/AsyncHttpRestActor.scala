@@ -26,20 +26,20 @@ class AsyncHttpRestActor(diameter:ActorRef) extends HttpServiceActor with ActorL
         pathEndOrSingleSlash  {
           onComplete( diameter.ask(SigAsyncRequestData(userid)).mapTo[SigAsyncRequestDataResult] ) {
             case Failure(ex) => {
-              log.warning("Requesting data from Diameter layer failed, {}",ex)
+              log.error("Requesting data {} from Diameter layer failed, {}",userid,ex)
               complete(StatusCodes.InternalServerError,"Requesting data from Diameter layer failed")
             }
             case Success(dataFuture) => {
               onComplete(dataFuture.repoData)  {
                 case Failure(exe) => {
-                  log.warning("Requesting data from Diameter layer failed, {}",exe)
+                  log.error("Requesting data {} from Diameter layer failed, {}",userid,exe)
                   complete(StatusCodes.InternalServerError,"Requesting data from Diameter layer failed")
                 }
                 case Success(data) => {
                   data match {
                     case Some(d) => complete(d.data)
                     case None => {
-                      log.warning("Requesting data from Diameter layer failed, diameter layer returned None")
+                      log.error("Requesting data {} from Diameter layer failed, diameter layer returned None",userid)
                       complete(StatusCodes.InternalServerError,"Requesting data from Diameter layer failed")
                     }
                   }
@@ -58,19 +58,19 @@ class AsyncHttpRestActor(diameter:ActorRef) extends HttpServiceActor with ActorL
         pathEndOrSingleSlash  {
           onComplete( diameter.ask(SigAsyncDeleteData(userid)).mapTo[SigAsyncDeleteDataResult] ) {
             case Failure(ex) => {
-              log.warning("Deleting data from Diameter layer failed, {}",ex)
+              log.error("Deleting data {} from Diameter layer failed, {}",userid,ex)
               complete(StatusCodes.InternalServerError,"Deleting data from Diameter layer failed")
             }
             case Success(rFuture) => {
               onComplete(rFuture.success) {
                 case Failure(exe) => {
-                  log.warning("Deleting data from Diameter layer failed, {}",exe)
+                  log.error("Deleting data {} from Diameter layer failed, {}",userid,exe)
                   complete(StatusCodes.InternalServerError,"Deleting data from Diameter layer failed")
                 }
                 case Success(r) =>  {
                   if(r) complete("OK")
                   else  {
-                    log.warning("Deleting data from Diameter layer failed, diameter layer returned false")
+                    log.error("Deleting data {} from Diameter layer failed, diameter layer returned false",userid)
                     complete(StatusCodes.InternalServerError,"Deleting data from Diameter layer failed")
                   }
                 }
@@ -89,19 +89,19 @@ class AsyncHttpRestActor(diameter:ActorRef) extends HttpServiceActor with ActorL
           entity(as[Map[String,Int]]) { map =>
             onComplete( diameter.ask(SigAsyncUpdateData(userid,map)).mapTo[SigAsyncUpdateDataResult] ) {
               case Failure(ex) => {
-                log.warning("Updating data from Diameter layer failed, {}",ex)
+                log.error("Updating data {} from Diameter layer failed, {}",userid,ex)
                 complete(StatusCodes.InternalServerError,"Deleting data from Diameter layer failed")
               }
               case Success(rFuture) => {
                 onComplete(rFuture.success) {
                   case Failure(exe) => {
-                    log.warning("Updating data from Diameter layer failed, {}",exe)
+                    log.error("Updating data {} from Diameter layer failed, {}",userid,exe)
                     complete(StatusCodes.InternalServerError,"Deleting data from Diameter layer failed")
                   }
                   case Success(r) =>  {
                     if(r) complete("OK")
                     else  {
-                      log.warning("Updating data from Diameter layer failed, diameter layer returned false")
+                      log.error("Updating data {} from Diameter layer failed, diameter layer returned false",userid)
                       complete(StatusCodes.InternalServerError,"Deleting data from Diameter layer failed")
                     }
                   }
