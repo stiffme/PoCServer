@@ -4,19 +4,21 @@ import com.esipeng.diameter.DiameterConstants._
 import com.esipeng.diameter.node._
 import org.slf4j.LoggerFactory
 
-import scala.concurrent.{ExecutionContext, Future, Promise}
+import scala.concurrent.{Future, Promise}
 /**
  * Created by esipeng on 9/2/2015.
  */
 
-class AsyncDiameterServer(settings:NodeSettings,peer:Peer,implicit val executionContext:ExecutionContext) extends NodeManager(settings){
+class AsyncDiameterServer(settings:NodeSettings,peer:Peer) extends NodeManager(settings){
   val log = LoggerFactory.getLogger("DiameterServer")
 
   override def start = {
     super.start
-    Future{
+  }
+
+  def checkForConnection: Unit = {
+    if(waitForConnection(10) == false)  {
       node().initiateConnection(peer,true)
-      waitForConnection(500)
     }
 
   }
@@ -36,11 +38,8 @@ class AsyncDiameterServer(settings:NodeSettings,peer:Peer,implicit val execution
     } catch {
       case notRoutable:NotRoutableException => {
         sync.failure(notRoutable)
-        Future  {
-          log.warn("Not routable diameter message, re-init connection")
-          node().initiateConnection(peer,true)
-          waitForConnection(500)
-        }
+        log.warn("Not routable diameter message, re-init connection")
+
       }
       case e:InterruptedException => {
         sync.failure(e)
@@ -63,7 +62,7 @@ class AsyncDiameterServer(settings:NodeSettings,peer:Peer,implicit val execution
 
 
 object AsyncDiameterServer {
-  def createServer(destinationHost:String,destinationPort:Int,destinationIp:String,originHost:String,originRealm:String)(implicit ec:ExecutionContext) = {
+  def createServer(destinationHost:String,destinationPort:Int,destinationIp:String,originHost:String,originRealm:String) = {
     val capabilities = new Capability()
     //add Sh interface capability
     capabilities.addVendorAuthApp(TGPP,ShAppId)
@@ -76,6 +75,6 @@ object AsyncDiameterServer {
     val hssPeer = new Peer(destinationHost,destinationPort,Peer.TransportProtocol.tcp)
     hssPeer.setRealAddress(destinationIp)
     //return new DiameterServer
-    new AsyncDiameterServer(settings,hssPeer,ec)
+    new AsyncDiameterServer(settings,hssPeer)
   }
 }

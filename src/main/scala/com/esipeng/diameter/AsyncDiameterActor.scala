@@ -2,14 +2,14 @@ package com.esipeng.diameter
 
 import java.io.{StringReader, StringWriter}
 
-import akka.actor.{Actor, ActorLogging}
+import akka.actor.{Actor, ActorLogging, Cancellable}
 import com.esipeng.diameter.DiameterConstants._
 import spray.json.DefaultJsonProtocol._
 import spray.json._
 
 import scala.concurrent.Future
+import scala.concurrent.duration._
 import scala.xml.XML
-
 /**
  * Created by esipeng on 9/2/2015.
  */
@@ -20,6 +20,9 @@ case class SigAsyncUpdateDataResult(success:Future[Boolean])
 case class SigAsyncDeleteData(impu:String)
 case class SigAsyncDeleteDataResult(success:Future[Boolean])
 case class RepoData(seq:Int,data:Map[String,Int])
+
+protected case object CheckConnection
+
 class AsyncDiameterActor extends Actor with ActorLogging{
   val destinationAddress = context.system.settings.config.getString("diameter.destination-address")
   val destinationPort = context.system.settings.config.getString("diameter.destination-port").toInt
@@ -34,12 +37,17 @@ class AsyncDiameterActor extends Actor with ActorLogging{
   var diameterServer:AsyncDiameterServer = null
   implicit val executor = context.system.dispatcher
 
+  var sheduleCheck:Cancellable = _
+
   @throws[Exception](classOf[Exception])
   override def preStart(): Unit = {
     super.preStart()
     //start diameter server
     diameterServer = AsyncDiameterServer.createServer(destinationHost,destinationPort,destinationAddress,originHost,originRealm)
     diameterServer.start
+
+    //schedule every 3 seconds to check the connection
+    sheduleCheck = context.system.scheduler.schedule(500 millis,3 second,self,CheckConnection)
   }
 
 
@@ -47,13 +55,14 @@ class AsyncDiameterActor extends Actor with ActorLogging{
   override def postStop(): Unit = {
     super.postStop
     diameterServer.stop(2000)
-
+    if(sheduleCheck != null) sheduleCheck.cancel()
   }
 
   def receive = {
     case SigAsyncRequestData(impu) => sender ! SigAsyncRequestDataResult(requestData(impu))
     case SigAsyncUpdateData(impu,data) => sender ! SigAsyncUpdateDataResult(updateData(impu,data))
     case SigAsyncDeleteData(impu) => sender ! SigAsyncDeleteDataResult(deleteUserData(impu))
+    case CheckConnection => diameterServer.checkForConnection
   }
 
 
