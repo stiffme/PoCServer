@@ -16,6 +16,7 @@ object App {
   def main(args : Array[String]) {
     val log = LoggerFactory.getLogger("MainApp")
     implicit val system = ActorSystem("Server")
+    implicit val ec = system.dispatcher
     val localAddress = system.settings.config.getString("http_interface.local-address")
     val localPort = system.settings.config.getString("http_interface.local-port")
 

@@ -4,17 +4,21 @@ import com.esipeng.diameter.DiameterConstants._
 import com.esipeng.diameter.node._
 import org.slf4j.LoggerFactory
 
-import scala.concurrent.{Future, Promise}
+import scala.concurrent.{ExecutionContext, Future, Promise}
 /**
  * Created by esipeng on 9/2/2015.
  */
 
-class AsyncDiameterServer(settings:NodeSettings,peer:Peer) extends NodeManager(settings){
+class AsyncDiameterServer(settings:NodeSettings,peer:Peer,implicit val executionContext:ExecutionContext) extends NodeManager(settings){
   val log = LoggerFactory.getLogger("DiameterServer")
+
   override def start = {
     super.start
-    node().initiateConnection(peer,true)
-    waitForConnection(500)
+    Future{
+      node().initiateConnection(peer,true)
+      waitForConnection(500)
+    }
+
   }
 
   override def handleAnswer(message: Message, connectionKey: ConnectionKey, syncObj: scala.Any): Unit = {
@@ -31,12 +35,18 @@ class AsyncDiameterServer(settings:NodeSettings,peer:Peer) extends NodeManager(s
 
     } catch {
       case notRoutable:NotRoutableException => {
-        log.warn("Not routable diameter message, re-init connection")
-        node().initiateConnection(peer,true)
-        waitForConnection(500)
+        sync.failure(notRoutable)
+        Future  {
+          log.warn("Not routable diameter message, re-init connection")
+          node().initiateConnection(peer,true)
+          waitForConnection(500)
+        }
       }
-      case e:InterruptedException => {}
+      case e:InterruptedException => {
+        sync.failure(e)
+      }
       case notRequest:NotARequestException => {
+        sync.failure(notRequest)
         log.error("message is not a request")
       }
     }
@@ -53,7 +63,7 @@ class AsyncDiameterServer(settings:NodeSettings,peer:Peer) extends NodeManager(s
 
 
 object AsyncDiameterServer {
-  def createServer(destinationHost:String,destinationPort:Int,destinationIp:String,originHost:String,originRealm:String) = {
+  def createServer(destinationHost:String,destinationPort:Int,destinationIp:String,originHost:String,originRealm:String)(implicit ec:ExecutionContext) = {
     val capabilities = new Capability()
     //add Sh interface capability
     capabilities.addVendorAuthApp(TGPP,ShAppId)
@@ -66,6 +76,6 @@ object AsyncDiameterServer {
     val hssPeer = new Peer(destinationHost,destinationPort,Peer.TransportProtocol.tcp)
     hssPeer.setRealAddress(destinationIp)
     //return new DiameterServer
-    new AsyncDiameterServer(settings,hssPeer)
+    new AsyncDiameterServer(settings,hssPeer,ec)
   }
 }
