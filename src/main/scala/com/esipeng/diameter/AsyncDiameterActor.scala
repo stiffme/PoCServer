@@ -19,6 +19,8 @@ case class SigAsyncUpdateData(impu:String,data:Map[String,Int])
 case class SigAsyncUpdateDataResult(success:Future[Boolean])
 case class SigAsyncDeleteData(impu:String)
 case class SigAsyncDeleteDataResult(success:Future[Boolean])
+case class SigAsyncAddData(impu:String,data:Seq[String])
+case class SigAsyncAddDataResult(success:Future[Boolean])
 case class RepoData(seq:Int,data:Map[String,Int])
 
 protected case object CheckConnection
@@ -62,6 +64,7 @@ class AsyncDiameterActor extends Actor with ActorLogging{
     case SigAsyncRequestData(impu) => sender ! SigAsyncRequestDataResult(requestData(impu))
     case SigAsyncUpdateData(impu,data) => sender ! SigAsyncUpdateDataResult(updateData(impu,data))
     case SigAsyncDeleteData(impu) => sender ! SigAsyncDeleteDataResult(deleteUserData(impu))
+    case SigAsyncAddData(impu,data) => sender ! SigAsyncAddDataResult(addData(impu,data))
     case CheckConnection => diameterServer.checkForConnection
   }
 
@@ -104,46 +107,87 @@ class AsyncDiameterActor extends Actor with ActorLogging{
 
   private def updateData(impu:String,data:Map[String,Int]):Future[Boolean] = {
     //get current data first
-   requestData(impu).flatMap { o =>
-     o match {
-       case None => {
-         Future{
-           log.error("Updating failed because requesting failed")
-           false
-         }
-       }
-       case Some(repoData) => {
-         val temp = collection.mutable.Map.empty[String,Int] ++ repoData.data
-         for(newIn <- data) {
-           val oldData = temp.getOrElse(newIn._1,0)
-           temp.put(newIn._1,oldData + newIn._2)
-         }
-         val newSeq = repoData.seq + 1
-         val newJson = temp.toMap.toJson.compactPrint
-         val newRepo =
-           <Sh-Data>
-             <RepositoryData>
-               <ServiceIndication>{serviceIndication}</ServiceIndication>
-               <SequenceNumber>{newSeq}</SequenceNumber>
-               <ServiceData>{newJson}</ServiceData>
-             </RepositoryData>
-           </Sh-Data>
-         val writer = new StringWriter()
-         XML.write(writer,newRepo,"utf-8",true,null)
-         writer.flush
-         //make new repoData
-         val pur = makeCommonMessage(ShPUR,impu)
-         pur.add((new AVP_UTF8String(UserData,TGPP,writer.toString)).setM)
+    requestData(impu).flatMap { o =>
+      o match {
+        case None => {
+          Future{
+            log.error("Updating failed because requesting failed")
+            false
+          }
+        }
+        case Some(repoData) => {
+          val temp = collection.mutable.Map.empty[String,Int] ++ repoData.data
+          for(newIn <- data) {
+            val oldData = temp.getOrElse(newIn._1,0)
+            temp.put(newIn._1,oldData + newIn._2)
+          }
+          val newSeq = repoData.seq + 1
+          val newJson = temp.toMap.toJson.compactPrint
+          val newRepo =
+            <Sh-Data>
+              <RepositoryData>
+                <ServiceIndication>{serviceIndication}</ServiceIndication>
+                <SequenceNumber>{newSeq}</SequenceNumber>
+                <ServiceData>{newJson}</ServiceData>
+              </RepositoryData>
+            </Sh-Data>
+          val writer = new StringWriter()
+          XML.write(writer,newRepo,"utf-8",true,null)
+          writer.flush
+          //make new repoData
+          val pur = makeCommonMessage(ShPUR,impu)
+          pur.add((new AVP_UTF8String(UserData,TGPP,writer.toString)).setM)
 
-         val answerFuture = diameterServer.sendRequest(pur)
-         answerFuture.map { a=>
-           isSuccessfulAnswer(a)
-         }
-       }
-     }
-   }
+          val answerFuture = diameterServer.sendRequest(pur)
+          answerFuture.map { a=>
+            isSuccessfulAnswer(a)
+          }
+        }
+      }
+    }
   }
 
+  private def addData(impu:String,data:Seq[String]):Future[Boolean] = {
+    //get current data first
+    requestData(impu).flatMap { o =>
+      o match {
+        case None => {
+          Future{
+            log.error("Updating failed because requesting failed")
+            false
+          }
+        }
+        case Some(repoData) => {
+          val temp = collection.mutable.Map.empty[String,Int] ++ repoData.data
+          for(newIn <- data) {
+            val oldData = temp.getOrElse(newIn,0)
+            temp.put(newIn,oldData+1)
+          }
+          val newSeq = repoData.seq + 1
+          val newJson = temp.toMap.toJson.compactPrint
+          val newRepo =
+            <Sh-Data>
+              <RepositoryData>
+                <ServiceIndication>{serviceIndication}</ServiceIndication>
+                <SequenceNumber>{newSeq}</SequenceNumber>
+                <ServiceData>{newJson}</ServiceData>
+              </RepositoryData>
+            </Sh-Data>
+          val writer = new StringWriter()
+          XML.write(writer,newRepo,"utf-8",true,null)
+          writer.flush
+          //make new repoData
+          val pur = makeCommonMessage(ShPUR,impu)
+          pur.add((new AVP_UTF8String(UserData,TGPP,writer.toString)).setM)
+
+          val answerFuture = diameterServer.sendRequest(pur)
+          answerFuture.map { a=>
+            isSuccessfulAnswer(a)
+          }
+        }
+      }
+    }
+  }
 
   private def deleteUserData(impu:String):Future[Boolean] = {
     requestData(impu).flatMap  { o =>

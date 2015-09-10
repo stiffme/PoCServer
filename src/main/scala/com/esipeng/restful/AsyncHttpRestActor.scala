@@ -12,7 +12,6 @@ import spray.routing.HttpServiceActor
 import scala.concurrent.duration._
 import scala.util.{Failure, Success}
 
-
 /**
  * Created by esipeng on 9/2/2015.
  */
@@ -82,27 +81,27 @@ class AsyncHttpRestActor(diameter:ActorRef) extends HttpServiceActor with ActorL
     }
   }
 
-  val postRoute = {
-    post {
+  val putRoute = {
+    put {
       path("api" / Segment) { userid =>
         pathEndOrSingleSlash  {
           entity(as[Map[String,Int]]) { map =>
             onComplete( diameter.ask(SigAsyncUpdateData(userid,map)).mapTo[SigAsyncUpdateDataResult] ) {
               case Failure(ex) => {
                 log.error("Updating data {} from Diameter layer failed, {}",userid,ex)
-                complete(StatusCodes.InternalServerError,"Deleting data from Diameter layer failed")
+                complete(StatusCodes.InternalServerError,"Updating data from Diameter layer failed")
               }
               case Success(rFuture) => {
                 onComplete(rFuture.success) {
                   case Failure(exe) => {
                     log.error("Updating data {} from Diameter layer failed, {}",userid,exe)
-                    complete(StatusCodes.InternalServerError,"Deleting data from Diameter layer failed")
+                    complete(StatusCodes.InternalServerError,"Updating data from Diameter layer failed")
                   }
                   case Success(r) =>  {
                     if(r) complete("OK")
                     else  {
                       log.error("Updating data {} from Diameter layer failed, diameter layer returned false",userid)
-                      complete(StatusCodes.InternalServerError,"Deleting data from Diameter layer failed")
+                      complete(StatusCodes.InternalServerError,"Updating data from Diameter layer failed")
                     }
                   }
                 }
@@ -114,5 +113,38 @@ class AsyncHttpRestActor(diameter:ActorRef) extends HttpServiceActor with ActorL
     }
   }
 
-  def receive = runRoute( getRoute ~ postRoute ~ deleteRoute)
+
+  val postRoute = {
+    post {
+      path("api" / Segment) { userid =>
+        pathEndOrSingleSlash  {
+          entity(as[Seq[String]]) { seq =>
+            onComplete( diameter.ask(SigAsyncAddData(userid,seq)).mapTo[SigAsyncAddDataResult] ) {
+              case Failure(ex) => {
+                log.error("Adding data {} from Diameter layer failed, {}",userid,ex)
+                complete(StatusCodes.InternalServerError,"Adding data from Diameter layer failed")
+              }
+              case Success(rFuture) => {
+                onComplete(rFuture.success) {
+                  case Failure(exe) => {
+                    log.error("Adding data {} from Diameter layer failed, {}",userid,exe)
+                    complete(StatusCodes.InternalServerError,"Adding data from Diameter layer failed")
+                  }
+                  case Success(r) =>  {
+                    if(r) complete("OK")
+                    else  {
+                      log.error("Adding data {} from Diameter layer failed, diameter layer returned false",userid)
+                      complete(StatusCodes.InternalServerError,"Adding data from Diameter layer failed")
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  def receive = runRoute( getRoute ~ putRoute ~ deleteRoute ~ postRoute)
 }
