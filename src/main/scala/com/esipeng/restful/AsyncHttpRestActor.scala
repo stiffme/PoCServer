@@ -14,6 +14,11 @@ import scala.util.{Failure, Success}
 
 /**
  * Created by esipeng on 9/2/2015.
+ * URL: /api/$IMPU
+ * GET: to get data for this impu
+ * POST: body : JSON Array, update keywords
+ * PUT: body: JSON Object, Reset keywords
+ * DELETE: delete repo data
  */
 class AsyncHttpRestActor(diameter:ActorRef) extends HttpServiceActor with ActorLogging{
   implicit val timeout = Timeout(1 second)

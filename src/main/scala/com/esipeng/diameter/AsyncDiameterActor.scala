@@ -26,6 +26,7 @@ case class RepoData(seq:Int,data:Map[String,Int])
 protected case object CheckConnection
 
 class AsyncDiameterActor extends Actor with ActorLogging{
+  //TODO: health food (json)  shopping(3rd)
   val destinationAddress = context.system.settings.config.getString("diameter.destination-address")
   val destinationPort = context.system.settings.config.getString("diameter.destination-port").toInt
   val destinationHost = context.system.settings.config.getString("diameter.destination-host")
