@@ -15,9 +15,10 @@ import scala.xml.XML
  */
 case class SigAsyncRequestData(impu:String)
 case class SigAsyncRequestDataResult(repoData:Future[Option[RepoData]])
-case class SigAsyncUpdateData(impu:String,data:Map[String,Int])
-case class SigAsyncUpdateDataResult(success:Future[Boolean])
+//case class SigAsyncUpdateData(impu:String,data:Map[String,Int])
+//case class SigAsyncUpdateDataResult(success:Future[Boolean])
 case class SigAsyncDeleteData(impu:String)
+case class SigAsyncDeleteKeyData(impu:String,keyword:String)
 case class SigAsyncDeleteDataResult(success:Future[Boolean])
 case class SigAsyncAddData(impu:String,data:Seq[String])
 case class SigAsyncAddDataResult(success:Future[Boolean])
@@ -26,7 +27,6 @@ case class RepoData(seq:Int,data:Map[String,Int])
 protected case object CheckConnection
 
 class AsyncDiameterActor extends Actor with ActorLogging{
-  //TODO: health food (json)  shopping(3rd)
   val destinationAddress = context.system.settings.config.getString("diameter.destination-address")
   val destinationPort = context.system.settings.config.getString("diameter.destination-port").toInt
   val destinationHost = context.system.settings.config.getString("diameter.destination-host")
@@ -63,9 +63,10 @@ class AsyncDiameterActor extends Actor with ActorLogging{
 
   def receive = {
     case SigAsyncRequestData(impu) => sender ! SigAsyncRequestDataResult(requestData(impu))
-    case SigAsyncUpdateData(impu,data) => sender ! SigAsyncUpdateDataResult(updateData(impu,data))
+    //case SigAsyncUpdateData(impu,data) => sender ! SigAsyncUpdateDataResult(updateData(impu,data))
     case SigAsyncDeleteData(impu) => sender ! SigAsyncDeleteDataResult(deleteUserData(impu))
     case SigAsyncAddData(impu,data) => sender ! SigAsyncAddDataResult(addData(impu,data))
+    case SigAsyncDeleteKeyData(impu,key) => sender ! SigAsyncDeleteDataResult(deleteUserKeyword(impu,key))
     case CheckConnection => diameterServer.checkForConnection
   }
 
@@ -117,13 +118,8 @@ class AsyncDiameterActor extends Actor with ActorLogging{
           }
         }
         case Some(repoData) => {
-          val temp = collection.mutable.Map.empty[String,Int] ++ repoData.data
-          for(newIn <- data) {
-            val oldData = temp.getOrElse(newIn._1,0)
-            temp.put(newIn._1,oldData + newIn._2)
-          }
           val newSeq = repoData.seq + 1
-          val newJson = temp.toMap.toJson.compactPrint
+          val newJson = data.toMap.toJson.compactPrint
           val newRepo =
             <Sh-Data>
               <RepositoryData>
@@ -164,27 +160,7 @@ class AsyncDiameterActor extends Actor with ActorLogging{
             val oldData = temp.getOrElse(newIn,0)
             temp.put(newIn,oldData+1)
           }
-          val newSeq = repoData.seq + 1
-          val newJson = temp.toMap.toJson.compactPrint
-          val newRepo =
-            <Sh-Data>
-              <RepositoryData>
-                <ServiceIndication>{serviceIndication}</ServiceIndication>
-                <SequenceNumber>{newSeq}</SequenceNumber>
-                <ServiceData>{newJson}</ServiceData>
-              </RepositoryData>
-            </Sh-Data>
-          val writer = new StringWriter()
-          XML.write(writer,newRepo,"utf-8",true,null)
-          writer.flush
-          //make new repoData
-          val pur = makeCommonMessage(ShPUR,impu)
-          pur.add((new AVP_UTF8String(UserData,TGPP,writer.toString)).setM)
-
-          val answerFuture = diameterServer.sendRequest(pur)
-          answerFuture.map { a=>
-            isSuccessfulAnswer(a)
-          }
+          updateData(impu,temp.toMap)
         }
       }
     }
@@ -220,6 +196,28 @@ class AsyncDiameterActor extends Actor with ActorLogging{
             diameterServer.sendRequest(pur).map { a=>
               isSuccessfulAnswer(a)
             }
+          }
+        }
+      }
+    }
+  }
+
+  private def deleteUserKeyword(impu:String,keyword:String):Future[Boolean] = {
+    requestData(impu).flatMap  { o =>
+      o match {
+        case None => {
+          Future{
+            log.error("Deleting keyword failed because requesting failed")
+            false
+          }
+        }
+        case Some(repoData) => {
+          if(repoData.seq < 0 ) Future{true}
+          else  {
+            if(repoData.data.contains(keyword))
+              updateData(impu,repoData.data - keyword)
+            else
+              Future {true}
           }
         }
       }
