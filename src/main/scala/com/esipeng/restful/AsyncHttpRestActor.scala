@@ -1,17 +1,23 @@
 package com.esipeng.restful
 
+import java.io.File
+import java.net.URI
+
 import akka.actor.{ActorLogging, ActorRef}
 import akka.pattern.ask
 import akka.util.Timeout
 import com.esipeng.content.IContentProvider
 import com.esipeng.content.NoteJson._
 import com.esipeng.diameter._
-import spray.http.StatusCodes
+import spray.caching.LruCache
+import spray.http.{Uri, HttpHeaders, HttpHeader, StatusCodes}
 import spray.httpx.SprayJsonSupport._
 import spray.routing.HttpServiceActor
+import spray.routing.directives.CachingDirectives
 
 import scala.concurrent.duration._
 import scala.util.{Failure, Success}
+import CachingDirectives._
 /**
  * Created by esipeng on 9/2/2015.
  * Restful service interface
@@ -29,6 +35,9 @@ import scala.util.{Failure, Success}
 class AsyncHttpRestActor(diameter:ActorRef,dataRepo:IContentProvider) extends HttpServiceActor with ActorLogging{
   implicit val timeout = Timeout(1 second)
   implicit val executor = context.system.dispatcher
+  final val contentDirectory = context.system.settings.config.getString("http_interface.content-folder")
+  final val shoppingUrl = context.system.settings.config.getString("http_interface.shopping-url")
+  final val shoppingUrlFallback =  Uri(context.system.settings.config.getString("http_interface.shopping-url-fallback"))
 
   val getList = { //implements GET /api/food/
     get {
@@ -166,5 +175,58 @@ class AsyncHttpRestActor(diameter:ActorRef,dataRepo:IContentProvider) extends Ht
     }
   }
 
-  def receive = runRoute(getList ~ getListSSO ~ postRoute ~ deleteKeyRoute ~ deleteRoute ~ getSSO)
+  val imagesRoute = { //GET /images/xxx
+    get {
+      path ("images" / Segment) { image =>
+        pathEndOrSingleSlash {
+          implicit val keyer = s"${contentDirectory}${File.separatorChar}images${File.separatorChar}${image}"
+          log.debug("getting {}",keyer)
+          cache(routeCache()) {
+            getFromFile(keyer)
+          }
+        }
+      }
+    }
+  }
+
+  val shoppingSSO = {
+    get {
+      path("api" / "shopping"  / Segment){ userid =>
+        pathEndOrSingleSlash  {
+          val fut = diameter.ask(SigAsyncRequestData(userid)).mapTo[SigAsyncRequestDataResult]
+          onComplete( fut.flatMap( t=> t.repoData) ) {
+            case Success(data) => {
+              data match {
+                case Some(d) => {
+                  val keys:Seq[String] = d.data.toList.sortBy( _._2).map( _._1).reverse
+                  if(keys.length == 0)  {
+                    complete(StatusCodes.TemporaryRedirect,Seq[HttpHeader]( HttpHeaders.Location(shoppingUrlFallback) ), "")
+                  } else  {
+                    val topMostUri = Uri(shoppingUrl.replace("KEYWORD",keys(0)))
+                    complete(StatusCodes.TemporaryRedirect,Seq[HttpHeader]( HttpHeaders.Location(topMostUri) ), "")
+                  }
+                }
+                case None => {
+                  log.error("Requesting data {} from Diameter layer failed, diameter layer returned None",userid)
+                  complete(StatusCodes.InternalServerError,"Requesting data from Diameter layer failed")
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  val shopping = {
+    get {
+      path("api" / "shopping" ){
+        pathEndOrSingleSlash  {
+          complete(StatusCodes.TemporaryRedirect,Seq[HttpHeader]( HttpHeaders.Location(shoppingUrlFallback) ), "")
+        }
+      }
+    }
+  }
+
+  def receive = runRoute(getList ~ getListSSO ~ postRoute ~ deleteKeyRoute ~ deleteRoute ~ getSSO ~ imagesRoute ~ shopping ~ shoppingSSO)
 }

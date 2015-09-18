@@ -5,13 +5,26 @@ package com.esipeng.content
  */
 class ContentProviderStub extends IContentProvider{
   val stubDataFood = Seq[Note](
-    Note("/image/test.png","ice cream","ice cream content","icecream"),
-    Note("/image/test.png","vegetable","vegetable content","vegetable")
+    Note("/images/test.png","ice cream","ice cream content","icecream"),
+    Note("/images/test.png","vegetable","vegetable content","vegetable"),
+    Note("/images/test.png","ice cream","ice cream content","icecream"),
+    Note("/images/test.png","ice cream","ice cream content","icecream"),
+    Note("/images/test.png","ice cream","ice cream content","icecream"),
+    Note("/images/test.png","ice cream","ice cream content","icecream"),
+    Note("/images/test.png","ice cream","ice cream content","icecream"),
+    Note("/images/test.png","ice cream","ice cream content","icecream"),
+    Note("/images/test.png","ice cream","ice cream content","icecream"),
+    Note("/images/test.png","ice cream","ice cream content","icecream"),
+    Note("/images/test.png","ice cream","ice cream content","icecream"),
+    Note("/images/test.png","ice cream","ice cream content","icecream"),
+    Note("/images/test.png","ice cream","ice cream content","icecream"),
+    Note("/images/test.png","ice cream","ice cream content","icecream"),
+    Note("/images/test.png","ice cream","ice cream content","icecream")
   )
 
   val stubDataHealth = Seq[Note](
-    Note("/image/test.png","cancer","cancer content","cancer"),
-    Note("/image/test.png","cold","cold content","cold")
+    Note("/images/test.png","cancer","cancer content","cancer"),
+    Note("/images/test.png","cold","cold content","cold")
   )
 
   override def init(): Unit = {
