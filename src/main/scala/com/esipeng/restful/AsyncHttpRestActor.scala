@@ -67,11 +67,12 @@ class AsyncHttpRestActor(diameter:ActorRef) extends HttpServiceActor with ActorL
                 case Some(d) => {
                   //keyworkds is in d.data
                   val keys:Seq[String] = d.data.toList.sortBy( _._2).map( _._1).reverse
-                  complete(dataRepo.getAll("food",keys))
+                  complete(dataRepo.getAll(category,keys))
                 }
                 case None => {
                   log.error("Requesting data {} from Diameter layer failed, diameter layer returned None",userid)
-                  complete(StatusCodes.InternalServerError,"Requesting data from Diameter layer failed")
+                  //complete(StatusCodes.InternalServerError,"Requesting data from Diameter layer failed")
+                  complete(dataRepo.getAll(category))
                 }
               }
             }
