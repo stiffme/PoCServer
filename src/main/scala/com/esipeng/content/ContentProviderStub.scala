@@ -4,7 +4,7 @@ package com.esipeng.content
  * Created by esipeng on 9/16/2015.
  */
 class ContentProviderStub(val contentPath:String) extends IContentProvider{
-  def stubDataFood = Seq[Note](
+  val stubDataFood = Seq[Note](
     Note("/images/test.png","ice cream","ice cream content","icecream"),
     Note("/images/test.png","vegetable","vegetable content","vegetable"),
     Note("/images/test.png","ice cream","ice cream content","icecream"),
@@ -22,7 +22,7 @@ class ContentProviderStub(val contentPath:String) extends IContentProvider{
     Note("/images/test.png","ice cream","ice cream content","icecream")
   )
 
-  def stubDataHealth = Seq[Note](
+  val stubDataHealth = Seq[Note](
     Note("/images/test.png","cancer","cancer content","cancer"),
     Note("/images/test.png","cold","cold content","cold")
   )

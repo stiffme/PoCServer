@@ -43,7 +43,12 @@ class DirectoryContentProvider(val contentDir:String) extends ContentProviderStu
     }
   }
 
-  override def stubDataHealth: Seq[Note] = foodContent
-
-  override def stubDataFood: Seq[Note] = healthContent
+  override def getAll(category:String): Seq[Note] = {
+    if("food".equals(category))
+      foodContent
+    else if("health".equals(category))
+      healthContent
+    else
+      Seq.empty[Note]
+  }
 }

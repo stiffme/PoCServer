@@ -76,6 +76,10 @@ class AsyncHttpRestActor(diameter:ActorRef) extends HttpServiceActor with ActorL
                 }
               }
             }
+            case Failure(ex) => {
+              val ret = dataRepo.getAll(category )
+              complete(dataRepo.getAll(category))
+            }
           }
         }
       }
