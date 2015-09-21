@@ -3,8 +3,8 @@ package com.esipeng.content
 /**
  * Created by esipeng on 9/16/2015.
  */
-class ContentProviderStub extends IContentProvider{
-  val stubDataFood = Seq[Note](
+class ContentProviderStub(val contentPath:String) extends IContentProvider{
+  def stubDataFood = Seq[Note](
     Note("/images/test.png","ice cream","ice cream content","icecream"),
     Note("/images/test.png","vegetable","vegetable content","vegetable"),
     Note("/images/test.png","ice cream","ice cream content","icecream"),
@@ -22,7 +22,7 @@ class ContentProviderStub extends IContentProvider{
     Note("/images/test.png","ice cream","ice cream content","icecream")
   )
 
-  val stubDataHealth = Seq[Note](
+  def stubDataHealth = Seq[Note](
     Note("/images/test.png","cancer","cancer content","cancer"),
     Note("/images/test.png","cold","cold content","cold")
   )

@@ -1,7 +1,6 @@
 package com.esipeng.restful
 
 import java.io.File
-import java.net.URI
 
 import akka.actor.{ActorLogging, ActorRef}
 import akka.pattern.ask
@@ -9,15 +8,14 @@ import akka.util.Timeout
 import com.esipeng.content.IContentProvider
 import com.esipeng.content.NoteJson._
 import com.esipeng.diameter._
-import spray.caching.LruCache
-import spray.http.{Uri, HttpHeaders, HttpHeader, StatusCodes}
+import spray.http.{HttpHeader, HttpHeaders, StatusCodes, Uri}
 import spray.httpx.SprayJsonSupport._
 import spray.routing.HttpServiceActor
 import spray.routing.directives.CachingDirectives
+import spray.routing.directives.CachingDirectives._
 
 import scala.concurrent.duration._
 import scala.util.{Failure, Success}
-import CachingDirectives._
 /**
  * Created by esipeng on 9/2/2015.
  * Restful service interface
@@ -32,10 +30,17 @@ import CachingDirectives._
  * DELETE /api/keywords/$IMPU/$keyword delete one key
  * DELETE /api/keywords/$IMPU delete whole keywords!
  */
-class AsyncHttpRestActor(diameter:ActorRef,dataRepo:IContentProvider) extends HttpServiceActor with ActorLogging{
+class AsyncHttpRestActor(diameter:ActorRef) extends HttpServiceActor with ActorLogging{
   implicit val timeout = Timeout(1 second)
   implicit val executor = context.system.dispatcher
   final val contentDirectory = context.system.settings.config.getString("http_interface.content-folder")
+
+  //init data provider
+  val dataClass:Class[_] = Class.forName(context.system.settings.config.getString("http_interface.data-provider"))
+  val cons = dataClass.getConstructor(classOf[String])
+  val dataRepo:IContentProvider = cons.newInstance(contentDirectory).asInstanceOf[IContentProvider]
+  dataRepo.init()
+
   final val shoppingUrl = context.system.settings.config.getString("http_interface.shopping-url")
   final val shoppingUrlFallback =  Uri(context.system.settings.config.getString("http_interface.shopping-url-fallback"))
 
