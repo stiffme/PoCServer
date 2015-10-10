@@ -52,7 +52,7 @@ class DirectoryContentProvider(val contentDir:String) extends ContentProviderStu
       Seq.empty[Note]
   }
 
-  override def getAll(category:String,keywords: Seq[String]):collection.Seq[Note] = {
+  override def getAll(category:String,keywords: Map[String,Int]):collection.Seq[Note] = {
     val data = getAll(category)
 
     getWithKeywords(data,keywords)

@@ -15,6 +15,6 @@ object NoteJson extends DefaultJsonProtocol {
 trait IContentProvider  {
   def init():Unit
   def getAll(category:String):collection.Seq[Note]
-  def getAll(category:String,keywords:Seq[String]):collection.Seq[Note]
+  def getAll(category:String,keywords:Map[String,Int]):collection.Seq[Note]
 }
 

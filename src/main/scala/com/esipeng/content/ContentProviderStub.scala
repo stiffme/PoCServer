@@ -35,7 +35,7 @@ class ContentProviderStub(val contentPath:String) extends IContentProvider{
       Seq.empty[Note]
   }
 
-  override def getAll(category:String,keywords: Seq[String]):collection.Seq[Note] = {
+  override def getAll(category:String,keywords: Map[String,Int]):collection.Seq[Note] = {
     val data = {
       if("food".equals(category))
         stubDataFood
@@ -48,9 +48,19 @@ class ContentProviderStub(val contentPath:String) extends IContentProvider{
     getWithKeywords(data,keywords)
   }
 
-  def getWithKeywords(data:Seq[Note], keywords:Seq[String]):collection.Seq[Note] = {
+  def getWithKeywords(data:Seq[Note], keywords:Map[String,Int]):collection.Seq[Note] = {
     //dirty solution here, memory is not considered, but who cares?
 
+    val ret = collection.mutable.HashMap.empty[Note,Int]
+    for( n <- data) {
+      var weight:Int = 0
+      for(k <- n.keyword) {
+        weight += keywords.getOrElse(k,0)
+      }
+      ret += ( n -> weight)
+    }
+    ret.toList.sortBy(_._2).map(_._1).reverse
+    /*
     val left = collection.mutable.ListBuffer.empty[Note] ++ data
     val ret = collection.mutable.ListBuffer.empty[Note]
 
@@ -64,6 +74,6 @@ class ContentProviderStub(val contentPath:String) extends IContentProvider{
     }
 
     ret ++= left
-    ret.toSeq
+    ret.toSeq*/
   }
 }

@@ -1,6 +1,7 @@
 package com.esipeng.restful
 
 import java.io.File
+import java.net.URLEncoder
 
 import akka.actor.{ActorLogging, ActorRef}
 import akka.pattern.ask
@@ -11,7 +12,6 @@ import com.esipeng.diameter._
 import spray.http.{HttpHeader, HttpHeaders, StatusCodes, Uri}
 import spray.httpx.SprayJsonSupport._
 import spray.routing.HttpServiceActor
-import spray.routing.directives.CachingDirectives
 import spray.routing.directives.CachingDirectives._
 
 import scala.concurrent.duration._
@@ -66,8 +66,8 @@ class AsyncHttpRestActor(diameter:ActorRef) extends HttpServiceActor with ActorL
               data match {
                 case Some(d) => {
                   //keyworkds is in d.data
-                  val keys:Seq[String] = d.data.toList.sortBy( _._2).map( _._1).reverse
-                  complete(dataRepo.getAll(category,keys))
+                  //val keys:Seq[String] = d.data.toList.sortBy( _._2).map( _._1).reverse
+                  complete(dataRepo.getAll(category,d.data))
                 }
                 case None => {
                   log.error("Requesting data {} from Diameter layer failed, diameter layer returned None",userid)
@@ -96,7 +96,7 @@ class AsyncHttpRestActor(diameter:ActorRef) extends HttpServiceActor with ActorL
               data match {
                 case Some(d) => {
 
-                  complete(d.data)
+                  complete(d.data.toList.sortBy(_._2).map(_._1).reverse)
                 }
                 case None => {
                   log.error("Requesting data {} from Diameter layer failed, diameter layer returned None",userid)
@@ -212,8 +212,10 @@ class AsyncHttpRestActor(diameter:ActorRef) extends HttpServiceActor with ActorL
                   if(keys.length == 0)  {
                     complete(StatusCodes.TemporaryRedirect,Seq[HttpHeader]( HttpHeaders.Location(shoppingUrlFallback) ), "")
                   } else  {
-                    val topMostUri = Uri(shoppingUrl.replace("KEYWORD",keys(0)))
+                    val topMostUri = Uri(shoppingUrl.replace("KEYWORD",URLEncoder.encode(keys(0),"utf-8")))
+                    //Uri(URLEncoder.encode(shoppingUrl.replace("KEYWORD",keys(0)),"utf-8"))
                     complete(StatusCodes.TemporaryRedirect,Seq[HttpHeader]( HttpHeaders.Location(topMostUri) ), "")
+                    //complete(StatusCodes.TemporaryRedirect,Seq[HttpHeader]( HttpHeaders.Location(shoppingUrlFallback) ), "")
                   }
                 }
                 case None => {
