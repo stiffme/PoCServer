@@ -6,7 +6,7 @@ import spray.json.DefaultJsonProtocol
  * Created by esipeng on 9/16/2015.
  */
 
-case class Note(image:String,head:String,content:String,keyword:String)
+case class Note(image:String,head:String,content:String,keyword:Set[String])
 object NoteJson extends DefaultJsonProtocol {
   implicit val noteJsonConv = jsonFormat4(Note)
 }

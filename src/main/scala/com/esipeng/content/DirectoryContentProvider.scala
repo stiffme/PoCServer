@@ -31,9 +31,9 @@ class DirectoryContentProvider(val contentDir:String) extends ContentProviderStu
         val head = (xmlFile \ "head").text
         val image = (xmlFile \ "image").text
         val content = (xmlFile \ "content").text
-        val keyword = (xmlFile \ "keyword").text
+        val keyword = (xmlFile \ "keyword").text.split(",")
         logger.debug("File {} Adding head {}, image {}, content {}, keyword {}",k.getPath,head,image,content,keyword)
-        val note = Note(image,head,content,keyword)
+        val note = Note(image,head,content,keyword.toSet)
         ret += note
       }
 

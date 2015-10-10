@@ -5,26 +5,21 @@ package com.esipeng.content
  */
 class ContentProviderStub(val contentPath:String) extends IContentProvider{
   val stubDataFood = Seq[Note](
-    Note("/images/test.png","ice cream","ice cream content","icecream"),
-    Note("/images/test.png","vegetable","vegetable content","vegetable"),
-    Note("/images/test.png","ice cream","ice cream content","icecream"),
-    Note("/images/test.png","ice cream","ice cream content","icecream"),
-    Note("/images/test.png","ice cream","ice cream content","icecream"),
-    Note("/images/test.png","ice cream","ice cream content","icecream"),
-    Note("/images/test.png","ice cream","ice cream content","icecream"),
-    Note("/images/test.png","ice cream","ice cream content","icecream"),
-    Note("/images/test.png","ice cream","ice cream content","icecream"),
-    Note("/images/test.png","ice cream","ice cream content","icecream"),
-    Note("/images/test.png","ice cream","ice cream content","icecream"),
-    Note("/images/test.png","ice cream","ice cream content","icecream"),
-    Note("/images/test.png","ice cream","ice cream content","icecream"),
-    Note("/images/test.png","ice cream","ice cream content","icecream"),
-    Note("/images/test.png","ice cream","ice cream content","icecream")
+    Note("/images/test.png","ice cream","ice cream content",Set[String]("icecream")),
+    Note("/images/test.png","vegetable","vegetable content",Set[String]("vegetable")),
+    Note("/images/test.png","ice cream","ice cream content",Set[String]("icecream")),
+    Note("/images/test.png","ice cream","ice cream content",Set[String]("icecream")),
+    Note("/images/test.png","ice cream","ice cream content",Set[String]("icecream")),
+    Note("/images/test.png","ice cream","ice cream content",Set[String]("icecream")),
+    Note("/images/test.png","ice cream","ice cream content",Set[String]("icecream")),
+    Note("/images/test.png","ice cream","ice cream content",Set[String]("icecream")),
+    Note("/images/test.png","ice cream","ice cream content",Set[String]("icecream")),
+    Note("/images/test.png","ice cream","ice cream content",Set[String]("icecream"))
   )
 
   val stubDataHealth = Seq[Note](
-    Note("/images/test.png","cancer","cancer content","cancer"),
-    Note("/images/test.png","cold","cold content","cold")
+    Note("/images/test.png","cancer","cancer content",Set[String]("cancer")),
+    Note("/images/test.png","cold","cold content",Set[String]("cold"))
   )
 
   override def init(): Unit = {
